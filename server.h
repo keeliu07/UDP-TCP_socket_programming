@@ -20,4 +20,5 @@ typedef enum SERVER_STATE_tag
 bool checkFile(const char *fileName);
 int checkDirectory (string dir);
 int getDirectory (string dir, vector<string> &files);
+int invoke_ls();
 #endif

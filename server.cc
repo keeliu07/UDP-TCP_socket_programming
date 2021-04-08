@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
 		//system("clear");
 		//process input arguments
 		for (int i = 1; i < argc; i++)
-		{				
+		{
 			if (strcmp(argv[i], "-p") == 0)
 				udp_port = (unsigned short) atoi(argv[++i]);
 		    else
@@ -47,8 +47,14 @@ int main(int argc, char *argv[])
 		        return 1;
 		    }
 		}
+
+        // Generate udp port number
+        if(udp_port != 0){
+
+        }
 	}
-	
+
+    string in_cmd;
     while(true)
     {
         usleep(100);
@@ -56,11 +62,14 @@ int main(int argc, char *argv[])
         switch(server_state)
         {
             case WAITING:
-            {                
+            {
+                cout << "Waiting UDP command @: " << udp_port << endl;
+                cin >> in_cmd;
                 break;
             }
             case PROCESS_LS:
-            {                
+            {
+                invoke_ls();
                 server_state = WAITING;
                 break;
             }
@@ -105,6 +114,7 @@ int checkDirectory (string dir)
         return errno;
     }
     closedir(dp);
+    return 0;
 }
 
 
@@ -139,3 +149,13 @@ bool checkFile(const char *fileName)
     return infile.good();
 }
 
+int invoke_ls()
+{
+    vector<string> files_vect;
+    getDirectory("../", files_vect);
+    for (int i = 0; i < files_vect.size(); i++)
+    {
+        cout << "-" <<files_vect[i] << " ";
+    }
+    return 0;
+}
