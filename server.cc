@@ -26,22 +26,17 @@ string cmd_string[] = {" ", "CMD_LS", "CMD_SEND", "CMD_GET", "CMD_REMOVE", "CMD_
 int main(int argc, char *argv[])
 {
     unsigned short udp_port = 0;
-    if ((argc != 1) && (argc != 3))
-    {
+    if ((argc != 1) && (argc != 3)){
         cout << "Usage: " << argv[0];
         cout << " [-p <udp_port>]" << endl;
         return 1;
-    }
-    else
-    {
+    }else{
         //system("clear");
         //process input arguments
-        for (int i = 1; i < argc; i++)
-        {
+        for (int i = 1; i < argc; i++) {
             if (strcmp(argv[i], "-p") == 0)
                 udp_port = (unsigned short)atoi(argv[++i]);
-            else
-            {
+            else{
                 cout << "Usage: " << argv[0];
                 cout << " [-p <udp_port>]" << endl;
                 return 1;
@@ -49,25 +44,22 @@ int main(int argc, char *argv[])
         }
 
         // Generate udp port number
-        if (udp_port != 0)
-        {
+        if (udp_port != 0){
         }
     }
 
     string in_cmd;
-    while (true)
-    {
+    while (true) {
         usleep(100);
 
-        switch (server_state)
-        {
-        case WAITING:
+        switch (server_state) {
+        case WAITING: 
         {
             cout << "Waiting UDP command @: " << udp_port << endl;
             cin >> in_cmd;
             break;
         }
-        case PROCESS_LS:
+        case PROCESS_LS: 
         {
             invoke_ls();
             server_state = WAITING;
@@ -102,11 +94,9 @@ int main(int argc, char *argv[])
 }
 
 //this function check if the backup folder exist
-int checkDirectory(string dir)
-{
+int checkDirectory(string dir) {
     DIR *dp;
-    if ((dp = opendir(dir.c_str())) == NULL)
-    {
+    if ((dp = opendir(dir.c_str())) == NULL) {
         //cout << " - error(" << errno << ") opening " << dir << endl;
         if (mkdir(dir.c_str(), S_IRWXU) == 0)
             cout << " - Note: Folder " << dir << " does not exist. Created." << endl;
@@ -120,12 +110,10 @@ int checkDirectory(string dir)
 
 //this function is used to get all the filenames from the
 //backup directory
-int getDirectory(string dir, vector<string> &files)
-{
+int getDirectory(string dir, vector<string> &files) {
     DIR *dp;
     struct dirent *dirp;
-    if ((dp = opendir(dir.c_str())) == NULL)
-    {
+    if ((dp = opendir(dir.c_str())) == NULL) {
         //cout << " - error(" << errno << ") opening " << dir << endl;
         if (mkdir(dir.c_str(), S_IRWXU) == 0)
             cout << " - Note: Folder " << dir << " does not exist. Created." << endl;
@@ -135,8 +123,7 @@ int getDirectory(string dir, vector<string> &files)
     }
 
     int j = 0;
-    while ((dirp = readdir(dp)) != NULL)
-    {
+    while ((dirp = readdir(dp)) != NULL) {
         //do not list the file "." and ".."
         if ((string(dirp->d_name) != ".") && (string(dirp->d_name) != ".."))
             files.push_back(string(dirp->d_name));
@@ -144,19 +131,17 @@ int getDirectory(string dir, vector<string> &files)
     closedir(dp);
     return 0;
 }
+
 //this function check if the file exists
-bool checkFile(const char *fileName)
-{
+bool checkFile(const char *fileName) {
     ifstream infile(fileName);
     return infile.good();
 }
 
-int invoke_ls()
-{
+int invoke_ls() {
     vector<string> files_vect;
     getDirectory("../", files_vect);
-    for (int i = 0; i < files_vect.size(); i++)
-    {
+    for (int i = 0; i < files_vect.size(); i++) {
         cout << "-" << files_vect[i] << " ";
     }
     return 0;

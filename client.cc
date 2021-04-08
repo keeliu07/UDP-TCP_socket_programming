@@ -26,31 +26,24 @@ int main(int argc, char *argv[])
     unsigned short udp_port = 0;
     const char* server_host = "127.0.0.1";
     //process input arguments
-    if ((argc != 3) && (argc != 5))
-    {
+    if ((argc != 3) && (argc != 5)){
         cout << "Usage: " << argv[0];
         cout << " [-s <server_host>] -p <udp_port>" << endl;
         return 1;
-    }
-    else
-    {
+    } else {
         //system("clear");
-        for (int i = 1; i < argc; i++)
-        {
+        for (int i = 1; i < argc; i++) {
             if (strcmp(argv[i], "-p") == 0)
                 udp_port = (unsigned short) atoi(argv[++i]);
-            else if (strcmp(argv[i], "-s") == 0)
-            {
+            else if (strcmp(argv[i], "-s") == 0) {
                 server_host = argv[++i];
-                if (argc == 3)
-                {
+                if (argc == 3) {
                     cout << "Usage: " << argv[0];
                     cout << " [-s <server_host>] -p <udp_port>" << endl;
                     return 1;
                 }
             }
-            else
-            {
+            else {
                 cout << "Usage: " << argv[0];
                 cout << " [-s <server_host>] -p <udp_port>" << endl;
                 return 1;
@@ -60,42 +53,33 @@ int main(int argc, char *argv[])
 
     Client_State_T client_state = WAITING;
     string in_cmd;
-    while(true)
-    {
+    while(true) {
         usleep(100);
-        switch(client_state)
-        {
+        switch(client_state) {
             case WAITING:
             {
                 cout<<"$ ";
                 cin>>in_cmd;
-                
-                if(in_cmd == "ls")
-                {
+
+                if(in_cmd == "ls") {
                     client_state = PROCESS_LS;
                 }
-                else if(in_cmd == "send")
-                {
+                else if(in_cmd == "send") {
                     client_state = PROCESS_SEND;
                 }
-                else if(in_cmd == "remove")
-                {
+                else if(in_cmd == "remove") {
                     client_state = PROCESS_REMOVE;
                 }
-                else if(in_cmd == "rename")
-                {
+                else if(in_cmd == "rename") {
                     client_state = PROCESS_RENAME;
                 }
-                else if(in_cmd == "shutdown")
-                {
+                else if(in_cmd == "shutdown") {
                     client_state = SHUTDOWN;
                 }
-                else if(in_cmd == "quit")
-                {
+                else if(in_cmd == "quit") {
                     client_state = QUIT;
                 }
-                else
-                {
+                else{
                     cout<<" - wrong command."<<endl;
                     client_state = WAITING;
                 }
