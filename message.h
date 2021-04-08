@@ -10,7 +10,7 @@
 
 typedef struct DATA_MSG_tag
 {
-	char data[DATA_BUF_LEN]; // filename
+    char data[DATA_BUF_LEN]; // filename
 }Data_Msg_T;
 
 typedef enum CMD_tag
@@ -31,6 +31,6 @@ typedef struct CMD_MSG_tag
     char filename[FILE_NAME_LEN];
     uint32_t size;
     uint16_t port;
-	uint16_t error;
+    uint16_t error;
 }Cmd_Msg_T;
 #endif
