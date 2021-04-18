@@ -21,8 +21,11 @@
 
 using namespace std;
 
-int main(int argc, char *argv[])
-{
+void prepare_data_packet(int udp, int cmd){
+    CMD_MSG_tag msg;
+}
+
+int main(int argc, char *argv[]) {
     unsigned short udp_port = 0;
     const char* server_host = "127.0.0.1";
     //process input arguments

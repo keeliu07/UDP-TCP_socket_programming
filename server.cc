@@ -44,7 +44,9 @@ int main(int argc, char *argv[])
         }
 
         // Generate udp port number
-        if (udp_port != 0){
+        // assign an unaregistered port number 49152 to 65535 randomly
+        if (udp_port == 0) {
+            udp_port = rand() % 16384 + 49152;
         }
     }
 
