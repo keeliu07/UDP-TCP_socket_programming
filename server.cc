@@ -25,8 +25,9 @@
 Server_State_T server_state;
 
 void _prepare_send_data_packet(string data) {
-    strcpy(remotebuf, data.c_str());
-    Data_Msg_T data_msg = {.data = *remotebuf};
+    Data_Msg_T data_msg;
+    memcpy(data_msg.data, data.c_str(), BUFLEN);
+    cout << data_msg.data << endl;
     sendto(sk, &data_msg, strlen((const char *)&data_msg), 0, (struct sockaddr *)&remote, rlen);
 }
 
@@ -93,8 +94,7 @@ int main(int argc, char *argv[]) {
             Cmd_Msg_T msg;
             while(true){
                 msglen = recvfrom(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, &rlen);
-                if (msglen < 0 || msglen > 0)
-                    break;
+                if (msglen < 0 || msglen > 0) break;
             }
             cout << "[CMD RECEIVED]: " << CMD_TAG_MAP[msg.cmd] << endl;
             server_state = SERVER_STATE_MAP[msg.cmd];
@@ -185,7 +185,6 @@ int invoke_ls() {
     getDirectory("../backup/", files_vect);
     if (files_vect.size() == 0){
         string data_msg = "- server backup folder is empty.";
-        cout << data_msg << endl;
         _prepare_send_data_packet(data_msg);
     }else{
         for (int i = 0; i < files_vect.size(); i++) {
