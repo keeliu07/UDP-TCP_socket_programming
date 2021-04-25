@@ -18,11 +18,15 @@
 
 #include "message.h"
 #include "client.h"
+#include "socket-client.h"
 
 using namespace std;
 
-void prepare_data_packet(int udp, int cmd){
-    CMD_MSG_tag msg;
+Cmd_Msg_T prepare_data_packet(uint8_t cmd, uint16_t port) {
+    Cmd_Msg_T *msg = (Cmd_Msg_T *)malloc(sizeof(Cmd_Msg_T));
+    msg->cmd = cmd;
+    msg->port = port;
+    return *(msg);
 }
 
 int main(int argc, char *argv[]) {
@@ -54,14 +58,31 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    // create socket
+    sk = socket(AF_INET, SOCK_DGRAM, 0);
+    // designate the addressing family
+    remote.sin_family = AF_INET;
+    remote.sin_port = htons(udp_port);
+    // cout << remote.sin_port << endl;
+    // cout << ntohs(remote.sin_port) << endl;
+
+    // get the address of the remote host and store
+    hp = gethostbyname(server_host);
+    memcpy(&remote.sin_addr, hp->h_addr, hp->h_length);
+    // cout << hp->h_name << endl;
+
+    // send message telling it to shut down
+    // sendto(sk, MSG2, strlen(MSG2), 0, (struct sockaddr *)&remote, sizeof(remote));
+
     Client_State_T client_state = WAITING;
     string in_cmd;
     while(true) {
         usleep(100);
+
         switch(client_state) {
             case WAITING:
             {
-                cout<<"$ ";
+                cout << "$ ";
                 cin>>in_cmd;
 
                 if(in_cmd == "ls") {
@@ -90,6 +111,14 @@ int main(int argc, char *argv[]) {
             }
             case PROCESS_LS:
             {
+                Cmd_Msg_T msg = {.cmd = CMD_LS, .port = remote.sin_port};
+                // cout << unsigned(msg.cmd) << "\n";
+                // send the message to the other side
+                sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, sizeof(remote));
+                // wait for a response and print it
+                msglen = read(sk, buf, BUFLEN);
+                buf[msglen] = '\0';
+                cout << buf << "\n";
                 client_state = WAITING;
                 break;
             }

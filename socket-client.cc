@@ -6,7 +6,7 @@
 using namespace std;
 
 #define MSG1 "Have you heard about the new corduroy pillows?\nThey are making headlines!"
-#define MSG2 "."
+#define MSG2 "..."
 #define BUFLEN 356
 
 int main(int argc, char *argv[]) {
@@ -27,17 +27,17 @@ int main(int argc, char *argv[]) {
     remote.sin_port = atoi(argv[2]);
 
     // send the message to the other side
-    sendto(sk, MSG1, strlen(MSG1), 0, (struct sockaddr *)&remote, sizeof(remote));
+    // sendto(sk, MSG1, strlen(MSG1), 0, (struct sockaddr *)&remote, sizeof(remote));
     
-    // wait for a response and print it
-    msglen = read(sk, buf, BUFLEN);
-    buf[msglen] = '\0';
-    cout << buf << "\n";
+    // // wait for a response and print it
+    // msglen = read(sk, buf, BUFLEN);
+    // buf[msglen] = '\0';
+    // cout << buf << "\n";
 
-    // send message telling it to shut down 
-    sendto(sk,MSG2,strlen(MSG2),0,(struct sockaddr *)&remote, sizeof(remote));
+    // // send message telling it to shut down 
+    // sendto(sk,MSG2,strlen(MSG2),0,(struct sockaddr *)&remote, sizeof(remote));
 
-    close(sk);
+    // close(sk);
 
     return 0;
 }

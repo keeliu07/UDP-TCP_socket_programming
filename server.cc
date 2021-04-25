@@ -14,17 +14,38 @@
 #include <arpa/inet.h>
 #include <sstream>
 #include <string>
+#include <time.h>
 
+#include <random>
 #include "message.h"
 #include "server.h"
-
-using namespace std;
+#include "socket-server.h"
+// using namespace std;
 
 Server_State_T server_state;
-string cmd_string[] = {" ", "CMD_LS", "CMD_SEND", "CMD_GET", "CMD_REMOVE", "CMD_RENAME", "CMD_SHUTDOWN"};
 
-int main(int argc, char *argv[])
-{
+// init random generator and distribution
+// random_device rd;
+// default_random_engine generator(rd());
+// uniform_int_distribution<unsigned short> distribution(49152, 65532);
+// Generate udp port number if port is not given by user
+// Assign an unregistered port number 49152 to 65535 randomly
+// if (udp_port == 0) {
+//     udp_port = distribution(generator);
+// }
+
+void _prepare_send_data_packet(string data) {
+    strcpy(remotebuf, data.c_str());
+    Data_Msg_T data_msg = {.data = *remotebuf};
+    sendto(sk, &data_msg, strlen((const char *)&data_msg), 0, (struct sockaddr *)&remote, rlen);
+}
+
+void _prepare_send_msg_packet(uint8_t cmd, uint32_t size, uint16_t port, uint16_t error) {
+    Cmd_Msg_T msg = {.cmd = cmd, .size = size, .port = port, .error = error};
+}
+
+int main(int argc, char *argv[]) {
+
     unsigned short udp_port = 0;
     if ((argc != 1) && (argc != 3)){
         cout << "Usage: " << argv[0];
@@ -42,23 +63,45 @@ int main(int argc, char *argv[])
                 return 1;
             }
         }
-
-        // Generate udp port number
-        // assign an unaregistered port number 49152 to 65535 randomly
-        if (udp_port == 0) {
-            udp_port = rand() % 16384 + 49152;
-        }
     }
 
+    // create and set up socket
+    sk = socket(AF_INET, SOCK_DGRAM, 0);
+    local.sin_family = AF_INET;
+    local.sin_addr.s_addr = inet_addr(LOCALHOST);
+    cout << htons(udp_port) << endl;
+    local.sin_port = htons(udp_port);
+
+    // bind address name to a port
+    ::bind(sk, (struct sockaddr *)&local, sizeof(local));
+    listen(sk, 1);
+
+    socklen_t length = sizeof(local);
+
+    // get port name
+    ::getsockname(sk, (struct sockaddr *)&local, &length);
+    cout << "socket has port " << local.sin_port << "\n";
+    cout << "socket has addr " << local.sin_addr.s_addr << "\n";
+
     string in_cmd;
+     int counter = 0;
     while (true) {
         usleep(100);
 
         switch (server_state) {
-        case WAITING: 
+        case WAITING:
         {
-            cout << "Waiting UDP command @: " << udp_port << endl;
-            cin >> in_cmd;
+            if (counter == 0)
+                cout << "Waiting UDP command @: " << ntohs(local.sin_port) << endl;
+            Cmd_Msg_T msg;
+            while(true){
+                msglen = recvfrom(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, &rlen);
+                if (msglen < 0 || msglen > 0)
+                    break;
+            }
+            cout << "[CMD RECEIVED]: " << CMD_TAG_MAP[msg.cmd] << endl;
+            server_state = SERVER_STATE_MAP[msg.cmd];
+            counter++;
             break;
         }
         case PROCESS_LS: 
@@ -142,9 +185,16 @@ bool checkFile(const char *fileName) {
 
 int invoke_ls() {
     vector<string> files_vect;
-    getDirectory("../", files_vect);
-    for (int i = 0; i < files_vect.size(); i++) {
-        cout << "-" << files_vect[i] << " ";
+    getDirectory("../backup/", files_vect);
+    if (files_vect.size() == 0){
+        string data_msg = "- server backup folder is empty.";
+        cout << data_msg << endl;
+        _prepare_send_data_packet(data_msg);
+    }else{
+        for (int i = 0; i < files_vect.size(); i++) {
+            cout << " - " << files_vect[i] << endl;
+        }
     }
+
     return 0;
 }

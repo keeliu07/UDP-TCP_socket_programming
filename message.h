@@ -5,6 +5,10 @@
 #ifndef _MESSAGE_H_
 #define _MESSAGE_H_
 
+#include <string>
+#include <map>
+using namespace std;
+
 #define DATA_BUF_LEN 3000
 #define FILE_NAME_LEN 128
 
@@ -24,6 +28,14 @@ typedef enum CMD_tag
     CMD_QUIT = 7,
     CMD_ACK = 8,
 }Cmd_T;
+
+map<uint8_t, string> CMD_TAG_MAP = {
+    {1, "CMD_LS"},
+    {2, "CMD_SEND"},
+    {3, "CMD_REMOVE"},
+    {4, "CMD_RENAME"},
+    {5, "CMD_SHUTDOWN"},
+};
 
 typedef struct CMD_MSG_tag
 {
