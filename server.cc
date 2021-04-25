@@ -24,16 +24,6 @@
 
 Server_State_T server_state;
 
-// init random generator and distribution
-// random_device rd;
-// default_random_engine generator(rd());
-// uniform_int_distribution<unsigned short> distribution(49152, 65532);
-// Generate udp port number if port is not given by user
-// Assign an unregistered port number 49152 to 65535 randomly
-// if (udp_port == 0) {
-//     udp_port = distribution(generator);
-// }
-
 void _prepare_send_data_packet(string data) {
     strcpy(remotebuf, data.c_str());
     Data_Msg_T data_msg = {.data = *remotebuf};
@@ -67,21 +57,28 @@ int main(int argc, char *argv[]) {
 
     // create and set up socket
     sk = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sk == -1){
+        perror("opening datagram socket");
+        return 1;
+    }
+
     local.sin_family = AF_INET;
-    local.sin_addr.s_addr = inet_addr(LOCALHOST);
-    cout << htons(udp_port) << endl;
+    local.sin_addr.s_addr = INADDR_ANY;
     local.sin_port = htons(udp_port);
 
     // bind address name to a port
-    ::bind(sk, (struct sockaddr *)&local, sizeof(local));
-    listen(sk, 1);
-
-    socklen_t length = sizeof(local);
+    if (::bind(sk, (struct sockaddr *)&local, sizeof(local)) == -1) {
+        perror("binding datagram socket");
+        return 1;
+    }
 
     // get port name
-    ::getsockname(sk, (struct sockaddr *)&local, &length);
-    cout << "socket has port " << local.sin_port << "\n";
-    cout << "socket has addr " << local.sin_addr.s_addr << "\n";
+    if (::getsockname(sk, (struct sockaddr *)&local, &len) == -1) {
+        perror("getting socket name");
+        exit(1);
+    }
+    // cout << "socket has port " << ntohs(local.sin_port) << "\n";
+    // cout << "socket has addr " << local.sin_addr.s_addr << "\n";
 
     string in_cmd;
      int counter = 0;

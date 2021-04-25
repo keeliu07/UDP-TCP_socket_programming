@@ -18,8 +18,7 @@ using namespace std;
 #define LOCALHOST "127.0.0.1"
 #define BUFLEN 3000
 
-    int rot13(char *inbuf, char *outbuf)
-{
+int rot13(char *inbuf, char *outbuf) {
     int idx;
     if (inbuf[0] == '.')
         return 0;
