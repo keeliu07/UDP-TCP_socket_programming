@@ -143,10 +143,8 @@ int main(int argc, char *argv[]) {
                 Cmd_Msg_T response;
                 if (read(sk, &response, strlen((const char *)&response)) == -1) {
                     cout << "error!" <<endl;
-                }
-                else {
+                } else {
                     if (int(response.cmd) == CMD_ACK) {
-                        cout << int(response.cmd) << endl;
                         cout << " - server is shutdown." << endl;
                         client_state = WAITING;
                     }

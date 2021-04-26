@@ -2,9 +2,6 @@
 #define _CLIENT_H
 
 #include <sys/types.h>
-
-using namespace std;
-
 typedef enum CLIENT_STATE_tag
 {
     WAITING = 0,
