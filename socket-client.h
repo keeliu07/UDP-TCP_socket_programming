@@ -16,5 +16,6 @@ sockaddr_in remote;
 char buf[BUFLEN];
 hostent *hp;
 int msglen;
+socklen_t rlen = sizeof(remote);
 
 #endif
