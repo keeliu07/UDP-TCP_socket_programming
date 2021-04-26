@@ -140,10 +140,23 @@ int main(int argc, char *argv[]) {
             }
             case SHUTDOWN:
             {
+                Cmd_Msg_T response;
+                if (read(sk, &response, strlen((const char *)&response)) == -1) {
+                    cout << "error!" <<endl;
+                }
+                else {
+                    if (int(response.cmd) == CMD_ACK) {
+                        cout << int(response.cmd) << endl;
+                        cout << " - server is shutdown." << endl;
+                        client_state = WAITING;
+                    }
+                }
                 break;
             }
             case QUIT:
             {
+                close(sk);
+                return 0;
             }
             default:
             {

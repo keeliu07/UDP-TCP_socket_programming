@@ -32,9 +32,10 @@ typedef enum CMD_tag
 map<uint8_t, string> CMD_TAG_MAP = {
     {1, "CMD_LS"},
     {2, "CMD_SEND"},
-    {3, "CMD_REMOVE"},
-    {4, "CMD_RENAME"},
-    {5, "CMD_SHUTDOWN"},
+    {3, "CMD_GET"},
+    {4, "CMD_REMOVE"},
+    {5, "CMD_RENAME"},
+    {6, "CMD_SHUTDOWN"},
 };
 
 typedef struct CMD_MSG_tag

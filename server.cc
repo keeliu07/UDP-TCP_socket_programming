@@ -124,6 +124,10 @@ int main(int argc, char *argv[]) {
         }
         case SHUTDOWN:
         {
+            Cmd_Msg_T response = {.cmd = CMD_ACK, .error = 0};
+            sendto(sk, &response, strlen((const char *)&response), 0, (struct sockaddr *)&remote, sizeof(remote));
+            close(sk);
+            return 0;
         }
         default:
         {
