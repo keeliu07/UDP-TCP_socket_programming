@@ -32,5 +32,5 @@ map<uint8_t, Server_State_T> SERVER_STATE_MAP = {
 bool checkFile(const char *fileName);
 int checkDirectory (string dir);
 int getDirectory (string dir, vector<string> &files);
-int invoke_ls();
+int invoke_ls(Cmd_Msg_T msg);
 #endif

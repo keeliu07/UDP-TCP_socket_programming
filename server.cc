@@ -20,19 +20,27 @@
 #include "message.h"
 #include "server.h"
 #include "socket-server.h"
+#include "helper.h"
 // using namespace std;
 
 Server_State_T server_state;
+int counter = 0;
 
-void _prepare_send_data_packet(string data) {
+void _prepare_and_send_data_packet(string data) {
     Data_Msg_T data_msg;
     memcpy(data_msg.data, data.c_str(), BUFLEN);
-    cout << data_msg.data << endl;
+    // cout << data_msg.data;
     sendto(sk, &data_msg, strlen((const char *)&data_msg), 0, (struct sockaddr *)&remote, rlen);
 }
 
-void _prepare_send_msg_packet(uint8_t cmd, uint32_t size, uint16_t port, uint16_t error) {
-    Cmd_Msg_T msg = {.cmd = cmd, .size = size, .port = port, .error = error};
+void _prepare_and_send_msg_packet(uint8_t cmd, uint32_t size) {
+    Cmd_Msg_T msg = {.cmd = cmd, .size = htonl(size)};
+    sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, rlen);
+}
+
+void resetState(){
+    server_state = WAITING;
+    counter = 0;
 }
 
 int main(int argc, char *argv[]) {
@@ -62,7 +70,6 @@ int main(int argc, char *argv[]) {
         perror("opening datagram socket");
         return 1;
     }
-
     local.sin_family = AF_INET;
     local.sin_addr.s_addr = INADDR_ANY;
     local.sin_port = htons(udp_port);
@@ -82,7 +89,7 @@ int main(int argc, char *argv[]) {
     // cout << "socket has addr " << local.sin_addr.s_addr << "\n";
 
     string in_cmd;
-     int counter = 0;
+    Cmd_Msg_T msg;
     while (true) {
         usleep(100);
 
@@ -91,7 +98,6 @@ int main(int argc, char *argv[]) {
         {
             if (counter == 0)
                 cout << "Waiting UDP command @: " << ntohs(local.sin_port) << endl;
-            Cmd_Msg_T msg;
             while(true){
                 msglen = recvfrom(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, &rlen);
                 if (msglen < 0 || msglen > 0) break;
@@ -103,23 +109,23 @@ int main(int argc, char *argv[]) {
         }
         case PROCESS_LS: 
         {
-            invoke_ls();
-            server_state = WAITING;
+            invoke_ls(msg);
+            resetState();
             break;
         }
         case PROCESS_SEND:
         {
-            server_state = WAITING;
+            resetState();
             break;
         }
         case PROCESS_REMOVE:
         {
-            server_state = WAITING;
+            resetState();
             break;
         }
         case PROCESS_RENAME:
         {
-            server_state = WAITING;
+            resetState();
             break;
         }
         case SHUTDOWN:
@@ -184,17 +190,20 @@ bool checkFile(const char *fileName) {
     return infile.good();
 }
 
-int invoke_ls() {
+int invoke_ls(Cmd_Msg_T msg) {
     vector<string> files_vect;
     getDirectory("../backup/", files_vect);
+    _prepare_and_send_msg_packet(msg.cmd, (unsigned int)files_vect.size());
     if (files_vect.size() == 0){
-        string data_msg = "- server backup folder is empty.";
-        _prepare_send_data_packet(data_msg);
+        string msg = " - server backup folder is empty.";
+        _prepare_and_send_data_packet(msg);
     }else{
         for (int i = 0; i < files_vect.size(); i++) {
-            cout << " - " << files_vect[i] << endl;
+            string msg = " - " + files_vect[i] + " ";
+            cout << msg;
+            _prepare_and_send_data_packet(msg);
         }
+        cout << endl;
     }
-
     return 0;
 }
