@@ -42,6 +42,33 @@ void resetState(){
     counter = 0;
 }
 
+int create_tcp_socket(){
+    // create and set up socket
+    tcp_sk = socket(AF_INET, SOCK_STREAM, 0);
+    if (tcp_sk == -1) {
+        perror("opening datagram socket");
+        return 1;
+    }
+    tcp.sin_family = AF_INET;
+    tcp.sin_addr.s_addr = INADDR_ANY;
+    tcp.sin_port = htons(0);
+
+    // bind address name to a port
+    if (::bind(tcp_sk, (struct sockaddr *)&tcp, tlen) == -1) {
+        perror("binding datagram socket");
+        return 1;
+    }
+
+    // get port name
+    if (::getsockname(tcp_sk, (struct sockaddr *)&tcp, &tlen) == -1)
+    {
+        perror("getting socket name");
+        return 1;
+    }
+    cout << " - listen @: " << ntohs(tcp.sin_port) << endl;
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
 
     unsigned short udp_port = 0;
@@ -116,8 +143,46 @@ int main(int argc, char *argv[]) {
         {
             cout << " - filename: " << msg.filename << endl;
             cout << " - filesize: " << ntohl(msg.size) << endl;
-            cout << " - listen @: " << "12345" << endl;
+            string path = "../backup/" + string(msg.filename);
 
+            Cmd_Msg_T response = {.cmd = CMD_SEND};
+            if(checkFile(path.c_str())){
+                // File is alreay exists
+                response.error = 2;
+                cout << "file " << msg.filename << "exists; overwrite?";
+            }else{
+                // File does not exist
+                create_tcp_socket();
+                response.error = 0;
+                response.port = tcp.sin_port;
+            }
+            sendto(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, rlen);
+
+            if(response.error == 2){
+                // wait for a response
+                Cmd_Msg_T receive;
+                if (read(sk, &receive, sizeof(receive)) == -1) {
+                    cout << "error!" <<endl;
+                } else {
+                    if(receive.error == 1){
+                        response.error = 0;
+                        response.port = tcp.sin_port;
+                        sendto(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, rlen);
+                    }else{
+                        resetState();
+                        break;
+                    }
+                }
+            }
+
+            // start listen for client's connection
+            listen(tcp_sk, 1);
+            int connection = accept(tcp_sk, (struct sockaddr *)&tcp, &tlen);
+            if(connection != -1){
+                cout << " - connected with client." << endl;
+            }else{
+                cout << " - failed to accept TCP connection." << endl;
+            }
             resetState();
             break;
         }

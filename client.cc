@@ -116,6 +116,7 @@ int main(int argc, char *argv[]) {
                         msg.size = htonl(filesize);
                     }
                     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
+                    cout << " - filesize: " << filesize << endl;
                     client_state = PROCESS_SEND;
                 }
                 else if(args[0] == "remove") {
@@ -152,7 +153,7 @@ int main(int argc, char *argv[]) {
                 msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
                 int size = ntohl(response.size);
                 if (int(response.cmd) != CMD_LS){
-                    cout << " - command response error.";
+                    cout << " - command response error." << endl;
                 }else{
                     Data_Msg_T data_msg;
                     for (int i = 0; i < size; i++) {
@@ -168,7 +169,46 @@ int main(int argc, char *argv[]) {
             }
             case PROCESS_SEND:
             {
-                
+                Cmd_Msg_T response;
+                int msglen;
+                msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
+                if(response.error == 2){
+                    cout << "- file exists. ovewrite? (y/n): ";
+                    char choice;
+                    cin >> choice;
+                    Cmd_Msg_T send = {.cmd = CMD_SEND};
+                    if (choice == 'y'){
+                        send.error = 0;
+                    }else{
+                        send.error = 2;
+                    }
+                    sendto(sk, &send, sizeof(send), 0, (struct sockaddr *)&remote, sizeof(remote));
+                    if(send.error ==2){
+                        // return to WAITING state
+                        client_state = WAITING;
+                        break;
+                    }
+                 }else if(response.error == 0){
+                    if (int(response.cmd) != CMD_SEND) {
+                        cout << " - command response error." << endl;
+                    } else {
+                        uint16_t tcp_port = ntohs(response.port);
+                        cout << " - TCP port: " << tcp_port << endl;
+                        // create tcp socket and config
+                        int tcpsk = socket(AF_INET, SOCK_STREAM, 0);
+                        tcp.sin_family = AF_INET;
+                        tcp.sin_port = htons(tcp_port);
+                        memcpy(&tcp.sin_addr, hp->h_addr, hp->h_length);
+
+                        //ebtablish tcp connection
+                        int establish = connect(tcpsk, (struct sockaddr *)&tcp, tlen);
+                        if(establish != -1){
+                            // connected to server with tcp 
+                        }else{
+                            cout << " - failed to connect server with TCP."<<endl;
+                        }
+                    }
+                 }
                 client_state = WAITING;
                 break;
             }
