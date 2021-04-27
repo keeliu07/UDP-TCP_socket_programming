@@ -114,6 +114,10 @@ int main(int argc, char *argv[]) {
         }
         case PROCESS_SEND:
         {
+            cout << " - filename: " << msg.filename << endl;
+            cout << " - filesize: " << ntohl(msg.size) << endl;
+            cout << " - listen @: " << "12345" << endl;
+
             resetState();
             break;
         }
@@ -125,13 +129,14 @@ int main(int argc, char *argv[]) {
                 if(remove(path.c_str()) != 0){
                     // cout << "File deletion failed.";
                 }else{
-                    // cout << "File Deleted.";
+                    cout << " - " << path << " has been removed." << endl;
                     ack.error = 0;
                 }
             }else{
                 ack.error = 1;
                 cout << " - file doesn't exist." << endl;
             }
+            cout << "- send acknowledgement." << endl;
             sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             resetState();
             break;
@@ -140,8 +145,11 @@ int main(int argc, char *argv[]) {
         {
             Cmd_Msg_T ack = {.cmd = CMD_ACK};
             string path = "../backup/";
-            if(checkFile((path+string(msg.filename)).c_str())){
-                if (rename((path + string(msg.filename)).c_str(), (path + string(msg.expected_filename)).c_str())==0){
+            string orig_filename = path + string(msg.filename);
+            string expect_filename = path + string(msg.expected_filename);
+            if(checkFile(orig_filename.c_str())){
+                if (rename(orig_filename.c_str(), expect_filename.c_str())==0){
+                    cout << " - the file has been renamed to " << expect_filename << "." << endl;
                     ack.error = 0;
                 }else{
                     ack.error = 1;
@@ -151,6 +159,7 @@ int main(int argc, char *argv[]) {
                 ack.error = 1;
                 cout << " - file doesn't exist." << endl;
             }
+            cout << "- send acknowledgement." << endl;
             sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             resetState();
             break;
@@ -158,6 +167,7 @@ int main(int argc, char *argv[]) {
         case SHUTDOWN:
         {
             Cmd_Msg_T ack = {.cmd = CMD_ACK, .error = 0};
+            cout << "- send acknowledgement." << endl;
             sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             close(sk);
             return 0;

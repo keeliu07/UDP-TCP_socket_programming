@@ -15,7 +15,8 @@
 #include <string>
 #include <netdb.h>
 #include <algorithm>
-
+#include <limits.h>
+#include <sys/stat.h>
 #include <inttypes.h>
 #include "message.h"
 #include "client.h"
@@ -24,11 +25,23 @@
 
 using namespace std;
 
-Cmd_Msg_T prepare_data_packet(uint8_t cmd, uint16_t port) {
-    Cmd_Msg_T *msg = (Cmd_Msg_T *)malloc(sizeof(Cmd_Msg_T));
-    msg->cmd = cmd;
-    msg->port = port;
-    return *(msg);
+// accepts absoulte and relative filepath
+string getFileAbsolutePath(string filepath) {
+    char buffer[PATH_MAX];
+    char *absolute_path = realpath(filepath.c_str(), buffer);
+    if (absolute_path == NULL) {
+        cout << "Cannot find file at " << filepath << endl;
+        return "";
+    } else {
+        return string(buffer);
+    }
+}
+
+long long getFileSize(string filepath) {
+    string absolutepath = getFileAbsolutePath(filepath);
+    struct stat stat_buf;
+    int rc = stat(absolutepath.c_str(), &stat_buf);
+    return rc == 0 ? stat_buf.st_size : -1;
 }
 
 int main(int argc, char *argv[]) {
@@ -78,12 +91,13 @@ int main(int argc, char *argv[]) {
         switch(client_state) {
             case WAITING:
             {
+                input = "";
+                memset(args,0,sizeof(args));
                 cout << "$ ";
                 getline(cin, input);
                 int count = 0;
                 for(auto x : input){
                     if(x == ' '){
-                        cout << args[count] << endl;
                         count++;
                     }else{
                         args[count]+= x;
@@ -95,6 +109,13 @@ int main(int argc, char *argv[]) {
                     client_state = PROCESS_LS;
                 }
                 else if(args[0] == "send") {
+                    Cmd_Msg_T msg = {.cmd = CMD_SEND, .error = 0};
+                    memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
+                    unsigned long filesize = getFileSize(args[1]);
+                    if (filesize != -1){
+                        msg.size = htonl(filesize);
+                    }
+                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_SEND;
                 }
                 else if(args[0] == "remove") {
@@ -160,6 +181,8 @@ int main(int argc, char *argv[]) {
                     if (int(response.cmd) == CMD_ACK && response.error == 1) {
                         cout << " - file doesn't exist." << endl;
                         client_state = WAITING;
+                    }else{
+                        cout << " - file is removed." << endl;
                     }
                 }
                 client_state = WAITING;
@@ -174,6 +197,8 @@ int main(int argc, char *argv[]) {
                     if (int(response.cmd) == CMD_ACK && response.error == 1) {
                         cout << " - file doesn't exist." << endl;
                         client_state = WAITING;
+                    }else{
+                        cout << " - file has been renamed." << endl;
                     }
                 }
                 client_state = WAITING;
