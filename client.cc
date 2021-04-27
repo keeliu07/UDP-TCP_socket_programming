@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
     memcpy(&remote.sin_addr, hp->h_addr, hp->h_length);
 
     Client_State_T client_state = WAITING;
-    string in_cmd;
+    string input, args[2];
     while(true) {
         usleep(100);
 
@@ -79,28 +79,43 @@ int main(int argc, char *argv[]) {
             case WAITING:
             {
                 cout << "$ ";
-                cin>>in_cmd;
-
-                if(in_cmd == "ls") {
+                getline(cin, input);
+                int count = 0;
+                for(auto x : input){
+                    if(x == ' '){
+                        count++;
+                    }else{
+                        args[count]+= x;
+                    }
+                }
+                if(args[0] == "ls") {
                     Cmd_Msg_T msg = {.cmd = CMD_LS};
                     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_LS;
                 }
-                else if(in_cmd == "send") {
+                else if(args[0] == "send") {
                     client_state = PROCESS_SEND;
                 }
-                else if(in_cmd == "remove") {
+                else if(args[0] == "remove") {
+                    Cmd_Msg_T msg = {.cmd = CMD_REMOVE};
+                    memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
+                    cout << msg.filename << endl;
+                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_REMOVE;
                 }
-                else if(in_cmd == "rename") {
+                else if(args[0] == "rename") {
+                    Cmd_Msg_T msg = {.cmd = CMD_RENAME};
+                    memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
+                    cout << msg.filename<<endl;
+                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_RENAME;
                 }
-                else if(in_cmd == "shutdown") {
+                else if(args[0] == "shutdown") {
                     Cmd_Msg_T msg = {.cmd = CMD_SHUTDOWN};
                     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = SHUTDOWN;
                 }
-                else if(in_cmd == "quit") {
+                else if(args[0] == "quit") {
                     client_state = QUIT;
                 }
                 else{
