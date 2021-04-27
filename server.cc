@@ -138,6 +138,20 @@ int main(int argc, char *argv[]) {
         }
         case PROCESS_RENAME:
         {
+            Cmd_Msg_T ack = {.cmd = CMD_ACK};
+            string path = "../backup/";
+            if(checkFile((path+string(msg.filename)).c_str())){
+                if (rename((path + string(msg.filename)).c_str(), (path + string(msg.expected_filename)).c_str())==0){
+                    ack.error = 0;
+                }else{
+                    ack.error = 1;
+                    cout << " - error renaming file." << endl;
+                }
+            }else{
+                ack.error = 1;
+                cout << " - file doesn't exist." << endl;
+            }
+            sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             resetState();
             break;
         }

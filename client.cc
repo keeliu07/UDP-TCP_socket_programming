@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
     memcpy(&remote.sin_addr, hp->h_addr, hp->h_length);
 
     Client_State_T client_state = WAITING;
-    string input, args[2];
+    string input, args[3];
     while(true) {
         usleep(100);
 
@@ -83,6 +83,7 @@ int main(int argc, char *argv[]) {
                 int count = 0;
                 for(auto x : input){
                     if(x == ' '){
+                        cout << args[count] << endl;
                         count++;
                     }else{
                         args[count]+= x;
@@ -105,6 +106,7 @@ int main(int argc, char *argv[]) {
                 else if(args[0] == "rename") {
                     Cmd_Msg_T msg = {.cmd = CMD_RENAME};
                     memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
+                    memcpy(msg.expected_filename, args[2].c_str(), FILE_NAME_LEN);
                     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_RENAME;
                 }
@@ -165,6 +167,15 @@ int main(int argc, char *argv[]) {
             }
             case PROCESS_RENAME:
             {
+                Cmd_Msg_T response;
+                if (read(sk, &response, sizeof(response)) == -1) {
+                    cout << "error!" <<endl;
+                } else {
+                    if (int(response.cmd) == CMD_ACK && response.error == 1) {
+                        cout << " - file doesn't exist." << endl;
+                        client_state = WAITING;
+                    }
+                }
                 client_state = WAITING;
                 break;
             }

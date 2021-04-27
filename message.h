@@ -42,6 +42,7 @@ typedef struct CMD_MSG_tag
 {
     uint8_t cmd;
     char filename[FILE_NAME_LEN];
+    char expected_filename[FILE_NAME_LEN]; // for rename file
     uint32_t size;
     uint16_t port;
     uint16_t error;
