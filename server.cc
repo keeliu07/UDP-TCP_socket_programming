@@ -119,6 +119,20 @@ int main(int argc, char *argv[]) {
         }
         case PROCESS_REMOVE:
         {
+            Cmd_Msg_T ack = {.cmd = CMD_ACK};
+            string path = "../backup/" + string(msg.filename);
+            if(checkFile(path.c_str())){
+                if(remove(path.c_str()) != 0){
+                    // cout << "File deletion failed.";
+                }else{
+                    // cout << "File Deleted.";
+                    ack.error = 0;
+                }
+            }else{
+                ack.error = 1;
+                cout << " - file doesn't exist." << endl;
+            }
+            sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             resetState();
             break;
         }
@@ -129,8 +143,8 @@ int main(int argc, char *argv[]) {
         }
         case SHUTDOWN:
         {
-            Cmd_Msg_T response = {.cmd = CMD_ACK, .error = 0};
-            sendto(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, sizeof(remote));
+            Cmd_Msg_T ack = {.cmd = CMD_ACK, .error = 0};
+            sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             close(sk);
             return 0;
         }
