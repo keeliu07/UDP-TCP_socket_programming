@@ -15,15 +15,13 @@
 #include <string>
 #include <netdb.h>
 #include <algorithm>
-#include <limits.h>
 #include <sys/stat.h>
 #include <inttypes.h>
+#include <limits.h>
+#include <math.h>
 #include "message.h"
 #include "client.h"
 #include "socket-client.h"
-#include "helper.h"
-
-using namespace std;
 
 // accepts absoulte and relative filepath
 string getFileAbsolutePath(string filepath) {
@@ -109,14 +107,6 @@ int main(int argc, char *argv[]) {
                     client_state = PROCESS_LS;
                 }
                 else if(args[0] == "send") {
-                    Cmd_Msg_T msg = {.cmd = CMD_SEND, .error = 0};
-                    memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
-                    unsigned long filesize = getFileSize(args[1]);
-                    if (filesize != -1){
-                        msg.size = htonl(filesize);
-                    }
-                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
-                    cout << " - filesize: " << filesize << endl;
                     client_state = PROCESS_SEND;
                 }
                 else if(args[0] == "remove") {
@@ -169,20 +159,29 @@ int main(int argc, char *argv[]) {
             }
             case PROCESS_SEND:
             {
+                Cmd_Msg_T msg = {.cmd = CMD_SEND, .error = 0};
+                memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
+                unsigned long filesize = getFileSize(args[1]);
+                if (filesize != -1){
+                    msg.size = htonl(filesize);
+                }
+                sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, rlen);
+                cout << " - filesize: " << filesize << endl;
+
                 Cmd_Msg_T response;
                 int msglen;
                 msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
                 if(response.error == 2){
-                    cout << "- file exists. ovewrite? (y/n): ";
+                    cout << " - file exists. overwrite? (y/n): ";
                     char choice;
-                    cin >> choice;
+                    scanf("%c", &choice);
                     Cmd_Msg_T send = {.cmd = CMD_SEND};
                     if (choice == 'y'){
                         send.error = 0;
                     }else{
                         send.error = 2;
                     }
-                    sendto(sk, &send, sizeof(send), 0, (struct sockaddr *)&remote, sizeof(remote));
+                    sendto(sk, &send, sizeof(send), 0, (struct sockaddr *)&remote, rlen);
                     if(send.error ==2){
                         // return to WAITING state
                         client_state = WAITING;
@@ -194,6 +193,7 @@ int main(int argc, char *argv[]) {
                     } else {
                         uint16_t tcp_port = ntohs(response.port);
                         cout << " - TCP port: " << tcp_port << endl;
+
                         // create tcp socket and config
                         int tcpsk = socket(AF_INET, SOCK_STREAM, 0);
                         tcp.sin_family = AF_INET;
@@ -203,14 +203,43 @@ int main(int argc, char *argv[]) {
                         //ebtablish tcp connection
                         int establish = connect(tcpsk, (struct sockaddr *)&tcp, tlen);
                         if(establish != -1){
-                            // connected to server with tcp 
+                            // connected to server with tcp
+
+                            // read file into buffer
+                            string path = getFileAbsolutePath(args[1]);
+                            FILE *file = fopen(path.c_str(), "rb");
+                            char *file_bytes = (char*)malloc(filesize);
+                            fread(file_bytes, 1, filesize, file);
+                            fclose(file);
+                            file_bytes[filesize] = '\0';
+
+                            // split buffer into chunks to send
+                            long done = 0;
+                            while(done < filesize ){
+                                long available = min(DATA_BUF_LEN, (int)(filesize - done));
+                                char buff[BUFLEN];
+                                memset(buff, 0, sizeof(buff));
+                                memcpy(buff, file_bytes + done, available);
+                                write(tcpsk, buff, sizeof(buff));
+                                done+=available;
+                            }
+
+                            // wait for ack
+                            Cmd_Msg_T ack;
+                            msglen = recvfrom(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, &rlen);
+                            if (ack.error == 0) {
+                                cout << " - file transmission is completed." << endl;
+                            }else{
+                                cout << " - file transmission is failed." << endl;
+                            }
+
                         }else{
                             cout << " - failed to connect server with TCP."<<endl;
                         }
                     }
+                    client_state = WAITING;
+                    break;
                  }
-                client_state = WAITING;
-                break;
             }
             case PROCESS_REMOVE:
             {

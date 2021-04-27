@@ -16,12 +16,9 @@
 #include <string>
 #include <time.h>
 
-#include <random>
 #include "message.h"
 #include "server.h"
 #include "socket-server.h"
-#include "helper.h"
-// using namespace std;
 
 Server_State_T server_state;
 int counter = 0;
@@ -149,7 +146,7 @@ int main(int argc, char *argv[]) {
             if(checkFile(path.c_str())){
                 // File is alreay exists
                 response.error = 2;
-                cout << "file " << msg.filename << "exists; overwrite?";
+                cout << "file " << msg.filename << " exists; overwrite?" << endl;
             }else{
                 // File does not exist
                 create_tcp_socket();
@@ -180,6 +177,29 @@ int main(int argc, char *argv[]) {
             int connection = accept(tcp_sk, (struct sockaddr *)&tcp, &tlen);
             if(connection != -1){
                 cout << " - connected with client." << endl;
+                // read data
+                long bytes = ntohl(msg.size);
+                char *file_buffer = (char *)malloc(bytes);
+                long bytes_read = 0;
+                while(bytes_read < bytes){
+                    long result = read(connection, file_buffer + bytes_read, bytes - bytes_read);
+                    if(result < 1) cout << " - message reception error." << endl;
+                    cout << result << endl;
+                    bytes_read += result;
+                    cout << " - total bytes received: " << bytes_read << endl;
+                }
+                cout << " - " << msg.filename << " has been received." << endl;
+
+                // create and write data to file
+                FILE* file = fopen(path.c_str(), "wb");
+                fwrite(file_buffer, 1, bytes_read, file);
+                fclose(file);
+
+                // send ack
+                Cmd_Msg_T ack = {.cmd = CMD_ACK};
+                ack.error = 0;
+                sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
+                cout << "- send acknowledgement." << endl;
             }else{
                 cout << " - failed to accept TCP connection." << endl;
             }
