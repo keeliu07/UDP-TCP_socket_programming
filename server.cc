@@ -98,7 +98,7 @@ int main(int argc, char *argv[]) {
             if (counter == 0)
                 cout << "Waiting UDP command @: " << ntohs(local.sin_port) << endl;
             while(true){
-                msglen = recvfrom(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, &rlen);
+                msglen = recvfrom(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, &rlen);
                 if (msglen < 0 || msglen > 0) break;
             }
             cout << "[CMD RECEIVED]: " << CMD_TAG_MAP[msg.cmd] << endl;
@@ -130,7 +130,7 @@ int main(int argc, char *argv[]) {
         case SHUTDOWN:
         {
             Cmd_Msg_T response = {.cmd = CMD_ACK, .error = 0};
-            sendto(sk, &response, strlen((const char *)&response), 0, (struct sockaddr *)&remote, sizeof(remote));
+            sendto(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, sizeof(remote));
             close(sk);
             return 0;
         }

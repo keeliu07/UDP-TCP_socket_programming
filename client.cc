@@ -83,7 +83,7 @@ int main(int argc, char *argv[]) {
 
                 if(in_cmd == "ls") {
                     Cmd_Msg_T msg = {.cmd = CMD_LS};
-                    sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, sizeof(remote));
+                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_LS;
                 }
                 else if(in_cmd == "send") {
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
                 }
                 else if(in_cmd == "shutdown") {
                     Cmd_Msg_T msg = {.cmd = CMD_SHUTDOWN};
-                    sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, sizeof(remote));
+                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = SHUTDOWN;
                 }
                 else if(in_cmd == "quit") {
@@ -112,16 +112,19 @@ int main(int argc, char *argv[]) {
             case PROCESS_LS:
             {
                 // wait for a response and print it
-                Cmd_Msg_T received_msg;
-                msglen = recvfrom(sk, &received_msg, sizeof(received_msg), 0, (struct sockaddr *)&remote, &rlen);
-                int size = ntohl(received_msg.size);
-                Data_Msg_T data_msg;
-                for(int i = 0; i < size; i++){
-                    do
-                    {
-                        msglen = recvfrom(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, &rlen);
-                        cout << data_msg.data;
-                    } while (msglen < sizeof(*buf));
+                Cmd_Msg_T response;
+                msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
+                int size = ntohl(response.size);
+                if (int(response.cmd) != CMD_LS){
+                    cout << " - command response error.";
+                }else{
+                    Data_Msg_T data_msg;
+                    for (int i = 0; i < size; i++) {
+                        do {
+                            msglen = recvfrom(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, &rlen);
+                            cout << data_msg.data;
+                        } while (msglen < sizeof(*buf));
+                    }
                 }
                 cout << endl;
                 client_state = WAITING;
@@ -146,7 +149,7 @@ int main(int argc, char *argv[]) {
             case SHUTDOWN:
             {
                 Cmd_Msg_T response;
-                if (read(sk, &response, strlen((const char *)&response)) == -1) {
+                if (read(sk, &response, sizeof(response)) == -1) {
                     cout << "error!" <<endl;
                 } else {
                     if (int(response.cmd) == CMD_ACK) {
