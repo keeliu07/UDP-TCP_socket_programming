@@ -29,13 +29,12 @@ int counter = 0;
 void _prepare_and_send_data_packet(string data) {
     Data_Msg_T data_msg;
     memcpy(data_msg.data, data.c_str(), BUFLEN);
-    // cout << data_msg.data;
-    sendto(sk, &data_msg, strlen((const char *)&data_msg), 0, (struct sockaddr *)&remote, rlen);
+    sendto(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, rlen);
 }
 
 void _prepare_and_send_msg_packet(uint8_t cmd, uint32_t size) {
     Cmd_Msg_T msg = {.cmd = cmd, .size = htonl(size)};
-    sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, rlen);
+    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, rlen);
 }
 
 void resetState(){
@@ -137,7 +136,7 @@ int main(int argc, char *argv[]) {
         }
         default:
         {
-            server_state = WAITING;
+            resetState();
             break;
         }
         }
@@ -190,20 +189,21 @@ bool checkFile(const char *fileName) {
     return infile.good();
 }
 
-int invoke_ls(Cmd_Msg_T msg) {
+int invoke_ls(Cmd_Msg_T incoming_msg) {
     vector<string> files_vect;
     getDirectory("../backup/", files_vect);
-    _prepare_and_send_msg_packet(msg.cmd, (unsigned int)files_vect.size());
-    if (files_vect.size() == 0){
+    _prepare_and_send_msg_packet(incoming_msg.cmd, (uint32_t)files_vect.size());
+    if (files_vect.size() == 0) {
         string msg = " - server backup folder is empty.";
         _prepare_and_send_data_packet(msg);
+        cout << msg;
     }else{
         for (int i = 0; i < files_vect.size(); i++) {
-            string msg = " - " + files_vect[i] + " ";
-            cout << msg;
+            string msg = " - " + files_vect[i] + " \0";
             _prepare_and_send_data_packet(msg);
+            cout << msg;
         }
-        cout << endl;
     }
+    cout << endl;
     return 0;
 }

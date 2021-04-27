@@ -16,9 +16,11 @@
 #include <netdb.h>
 #include <algorithm>
 
+#include <inttypes.h>
 #include "message.h"
 #include "client.h"
 #include "socket-client.h"
+#include "helper.h"
 
 using namespace std;
 
@@ -63,16 +65,10 @@ int main(int argc, char *argv[]) {
     // designate the addressing family
     remote.sin_family = AF_INET;
     remote.sin_port = htons(udp_port);
-    // cout << remote.sin_port << endl;
-    // cout << ntohs(remote.sin_port) << endl;
 
     // get the address of the remote host and store
     hp = gethostbyname(server_host);
     memcpy(&remote.sin_addr, hp->h_addr, hp->h_length);
-    // cout << hp->h_name << endl;
-
-    // send message telling it to shut down
-    // sendto(sk, MSG2, strlen(MSG2), 0, (struct sockaddr *)&remote, sizeof(remote));
 
     Client_State_T client_state = WAITING;
     string in_cmd;
@@ -86,6 +82,8 @@ int main(int argc, char *argv[]) {
                 cin>>in_cmd;
 
                 if(in_cmd == "ls") {
+                    Cmd_Msg_T msg = {.cmd = CMD_LS};
+                    sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_LS;
                 }
                 else if(in_cmd == "send") {
@@ -98,6 +96,8 @@ int main(int argc, char *argv[]) {
                     client_state = PROCESS_RENAME;
                 }
                 else if(in_cmd == "shutdown") {
+                    Cmd_Msg_T msg = {.cmd = CMD_SHUTDOWN};
+                    sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = SHUTDOWN;
                 }
                 else if(in_cmd == "quit") {
@@ -111,14 +111,19 @@ int main(int argc, char *argv[]) {
             }
             case PROCESS_LS:
             {
-                Cmd_Msg_T msg = {.cmd = CMD_LS, .port = remote.sin_port};
-                // cout << unsigned(msg.cmd) << "\n";
-                // send the message to the other side
-                sendto(sk, &msg, strlen((const char *)&msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                 // wait for a response and print it
-                msglen = read(sk, buf, BUFLEN);
-                buf[msglen] = '\0';
-                cout << buf << "\n";
+                Cmd_Msg_T received_msg;
+                msglen = recvfrom(sk, &received_msg, sizeof(received_msg), 0, (struct sockaddr *)&remote, &rlen);
+                int size = ntohl(received_msg.size);
+                Data_Msg_T data_msg;
+                for(int i = 0; i < size; i++){
+                    do
+                    {
+                        msglen = recvfrom(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, &rlen);
+                        cout << data_msg.data;
+                    } while (msglen < sizeof(*buf));
+                }
+                cout << endl;
                 client_state = WAITING;
                 break;
             }

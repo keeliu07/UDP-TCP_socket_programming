@@ -20,27 +20,4 @@ socklen_t rlen = sizeof(remote);
 socklen_t len = sizeof(local);
 int msglen;
 
-int rot13(char *inbuf, char *outbuf)
-{
-    int idx;
-    if (inbuf[0] == '.')
-        return 0;
-    idx = 0;
-    while (inbuf[idx] != '\0')
-    {
-        if (isalpha(inbuf[idx]))
-        {
-            if ((inbuf[idx] & 31) <= 13)
-                outbuf[idx] = inbuf[idx] + 13;
-            else
-                outbuf[idx] = inbuf[idx] - 13;
-        }
-        else
-            outbuf[idx] = inbuf[idx];
-        idx++;
-    }
-    outbuf[idx] = '\0';
-    return 1;
-}
-
 #endif
