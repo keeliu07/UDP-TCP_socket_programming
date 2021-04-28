@@ -5,7 +5,7 @@
 #ifndef _MESSAGE_H_
 #define _MESSAGE_H_
 
-#include <string>
+#include <string.h>
 #include <map>
 using namespace std;
 
@@ -29,13 +29,14 @@ typedef enum CMD_tag
     CMD_ACK = 8,
 }Cmd_T;
 
+// Helper Map
 map<uint8_t, string> CMD_TAG_MAP = {
     {1, "CMD_LS"},
     {2, "CMD_SEND"},
     {3, "CMD_GET"},
     {4, "CMD_REMOVE"},
     {5, "CMD_RENAME"},
-    {6, "CMD_SHUTDOWN"},
+    {6, "CMD_SHUTDOWN"}
 };
 
 typedef struct CMD_MSG_tag
@@ -47,4 +48,5 @@ typedef struct CMD_MSG_tag
     uint16_t port;
     uint16_t error;
 }Cmd_Msg_T;
+
 #endif

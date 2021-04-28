@@ -1,20 +1,19 @@
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-#include <errno.h>
-#include <vector>
-#include <string.h>
-#include <iostream>
-#include <fstream>
 #include <stdio.h>
 #include <unistd.h>
 #include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <string.h>
+#include <string>
+#include <dirent.h>
+#include <errno.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <arpa/inet.h>
-#include <sstream>
-#include <string>
-#include <time.h>
 
 #include "message.h"
 #include "server.h"
@@ -22,51 +21,6 @@
 
 Server_State_T server_state;
 int counter = 0;
-
-void _prepare_and_send_data_packet(string data) {
-    Data_Msg_T data_msg;
-    memcpy(data_msg.data, data.c_str(), BUFLEN);
-    sendto(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, rlen);
-}
-
-void _prepare_and_send_msg_packet(uint8_t cmd, uint32_t size) {
-    Cmd_Msg_T msg;
-    msg.cmd = cmd;
-    msg.size = htonl(size);
-    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, rlen);
-}
-
-void resetState(){
-    server_state = WAITING;
-    counter = 0;
-}
-
-int create_tcp_socket(){
-    // create and set up socket
-    tcp_sk = socket(AF_INET, SOCK_STREAM, 0);
-    if (tcp_sk == -1) {
-        perror("opening datagram socket");
-        return 1;
-    }
-    tcp.sin_family = AF_INET;
-    tcp.sin_addr.s_addr = INADDR_ANY;
-    tcp.sin_port = htons(0);
-
-    // bind address name to a port
-    if (::bind(tcp_sk, (struct sockaddr *)&tcp, tlen) == -1) {
-        perror("binding datagram socket");
-        return 1;
-    }
-
-    // get port name
-    if (::getsockname(tcp_sk, (struct sockaddr *)&tcp, &tlen) == -1)
-    {
-        perror("getting socket name");
-        return 1;
-    }
-    cout << " - listen @: " << ntohs(tcp.sin_port) << endl;
-    return 0;
-}
 
 int main(int argc, char *argv[]) {
 
@@ -110,8 +64,6 @@ int main(int argc, char *argv[]) {
         perror("getting socket name");
         exit(1);
     }
-    // cout << "socket has port " << ntohs(local.sin_port) << "\n";
-    // cout << "socket has addr " << local.sin_addr.s_addr << "\n";
 
     string in_cmd;
     Cmd_Msg_T msg;
@@ -335,4 +287,49 @@ int invoke_ls(Cmd_Msg_T incoming_msg) {
     }
     cout << endl;
     return 0;
+}
+
+void _prepare_and_send_data_packet(string data) {
+    Data_Msg_T data_msg;
+    memcpy(data_msg.data, data.c_str(), BUFLEN);
+    sendto(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, rlen);
+}
+
+void _prepare_and_send_msg_packet(uint8_t cmd, uint32_t size) {
+    Cmd_Msg_T msg;
+    msg.cmd = cmd;
+    msg.size = htonl(size);
+    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, rlen);
+}
+
+int create_tcp_socket() {
+    // create and set up socket
+    tcp_sk = socket(AF_INET, SOCK_STREAM, 0);
+    if (tcp_sk == -1) {
+        perror("opening datagram socket");
+        return 1;
+    }
+    tcp.sin_family = AF_INET;
+    tcp.sin_addr.s_addr = INADDR_ANY;
+    tcp.sin_port = htons(0);
+
+    // bind address name to a port
+    if (::bind(tcp_sk, (struct sockaddr *)&tcp, tlen) == -1) {
+        perror("binding datagram socket");
+        return 1;
+    }
+
+    // get port name
+    if (::getsockname(tcp_sk, (struct sockaddr *)&tcp, &tlen) == -1)
+    {
+        perror("getting socket name");
+        return 1;
+    }
+    cout << " - listen @: " << ntohs(tcp.sin_port) << endl;
+    return 0;
+}
+
+void resetState() {
+    server_state = WAITING;
+    counter = 0;
 }

@@ -1,46 +1,25 @@
-#include <sys/types.h>
-#include <dirent.h>
-#include <errno.h>
-#include <vector>
-#include <string.h>
-#include <iostream>
-#include <fstream>
 #include <stdio.h>
 #include <unistd.h>
 #include <cstdlib>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h> 
+#include <iostream>
+#include <fstream>
 #include <sstream>
-#include <string>
-#include <netdb.h>
-#include <algorithm>
-#include <sys/stat.h>
-#include <inttypes.h>
-#include <limits.h>
+#include <vector>
 #include <math.h>
+#include <limits.h>
+#include <algorithm>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <inttypes.h>
+#include <dirent.h>
+#include <errno.h>
+
 #include "message.h"
 #include "client.h"
 #include "socket-client.h"
-
-// accepts absoulte and relative filepath
-string getFileAbsolutePath(string filepath) {
-    char buffer[PATH_MAX];
-    char *absolute_path = realpath(filepath.c_str(), buffer);
-    if (absolute_path == NULL) {
-        cout << "Cannot find file at " << filepath << endl;
-        return "";
-    } else {
-        return string(buffer);
-    }
-}
-
-long long getFileSize(string filepath) {
-    string absolutepath = getFileAbsolutePath(filepath);
-    struct stat stat_buf;
-    int rc = stat(absolutepath.c_str(), &stat_buf);
-    return rc == 0 ? stat_buf.st_size : -1;
-}
 
 int main(int argc, char *argv[]) {
     unsigned short udp_port = 0;
@@ -51,7 +30,6 @@ int main(int argc, char *argv[]) {
         cout << " [-s <server_host>] -p <udp_port>" << endl;
         return 1;
     } else {
-        //system("clear");
         for (int i = 1; i < argc; i++) {
             if (strcmp(argv[i], "-p") == 0)
                 udp_port = (unsigned short) atoi(argv[++i]);
@@ -121,7 +99,6 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 else if(args[0] == "remove") {
-                    //ok
                     if(args[1] != "" ){
                         Cmd_Msg_T msg = {.cmd = CMD_REMOVE};
                         memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
@@ -131,7 +108,6 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 else if(args[0] == "rename") {
-                    //ok
                     if(args[1] != ""  && args[2] != "" ){
                         Cmd_Msg_T msg = {.cmd = CMD_RENAME};
                         memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
@@ -142,14 +118,12 @@ int main(int argc, char *argv[]) {
                     }
                 }
                 else if(args[0] == "shutdown") {
-                    //ok
                     Cmd_Msg_T msg = {.cmd = CMD_SHUTDOWN};
                     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = SHUTDOWN;
                     break;
                 }
                 else if(args[0] == "quit") {
-                    //ok
                     client_state = QUIT;
                     break;
                 }
@@ -332,4 +306,23 @@ int main(int argc, char *argv[]) {
        }
     }
     return 0;
+}
+
+// accepts absoulte and relative filepath
+string getFileAbsolutePath(string filepath) {
+    char buffer[PATH_MAX];
+    char *absolute_path = realpath(filepath.c_str(), buffer);
+    if (absolute_path == NULL) {
+        cout << "Cannot find file at " << filepath << endl;
+        return "";
+    } else {
+        return string(buffer);
+    }
+}
+
+long long getFileSize(string filepath) {
+    string absolutepath = getFileAbsolutePath(filepath);
+    struct stat stat_buf;
+    int rc = stat(absolutepath.c_str(), &stat_buf);
+    return rc == 0 ? stat_buf.st_size : -1;
 }

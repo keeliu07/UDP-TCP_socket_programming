@@ -4,7 +4,6 @@
 #include <vector>
 #include <string>
 #include <map>
-
 using namespace std;
 
 typedef enum SERVER_STATE_tag

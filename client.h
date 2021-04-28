@@ -1,7 +1,8 @@
 #ifndef _CLIENT_H
 #define _CLIENT_H
 
-#include <sys/types.h>
+#include <string>
+using namespace std;
 typedef enum CLIENT_STATE_tag
 {
     WAITING = 0,
@@ -14,4 +15,6 @@ typedef enum CLIENT_STATE_tag
     QUIT = 7
 }Client_State_T;
 
+long long getFileSize(string filepath);
+string getFileAbsolutePath(string filepath);
 #endif
