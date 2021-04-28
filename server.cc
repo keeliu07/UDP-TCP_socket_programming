@@ -46,7 +46,7 @@ int main(int argc, char *argv[]) {
     // create and set up socket
     sk = socket(AF_INET, SOCK_DGRAM, 0);
     if (sk == -1){
-        perror("opening datagram socket");
+        cout << " - failed to create UDP socket." << endl;
         return 1;
     }
     local.sin_family = AF_INET;
@@ -55,14 +55,16 @@ int main(int argc, char *argv[]) {
 
     // bind address name to a port
     if (::bind(sk, (struct sockaddr *)&local, sizeof(local)) == -1) {
-        perror("binding datagram socket");
+        cout << " - failed to bind UDP socket." << endl;
+        close(sk);
         return 1;
     }
 
     // get port name
     if (::getsockname(sk, (struct sockaddr *)&local, &len) == -1) {
-        perror("getting socket name");
-        exit(1);
+        cout << " - failed to get UDP socket info." << endl;
+        close(sk);
+        return 1;
     }
 
     string in_cmd;
@@ -127,8 +129,8 @@ int main(int argc, char *argv[]) {
             }
 
             // start listen for client's connection
-            listen(tcp_sk, 1);
-            int connection = accept(tcp_sk, (struct sockaddr *)&tcp, &tlen);
+            listen(tcpsk, 1);
+            int connection = accept(tcpsk, (struct sockaddr *)&tcp, &tlen);
             if(connection != -1){
                 cout << " - connected with client." << endl;
                 // read data
@@ -156,8 +158,11 @@ int main(int argc, char *argv[]) {
                 cout << " - send acknowledgement." << endl;
             }else{
                 cout << " - failed to accept TCP connection." << endl;
+                close(tcpsk);
+                close(sk);
+                return 1;
             }
-            close(tcp_sk);
+            close(tcpsk);
             resetState();
             break;
         }
@@ -211,7 +216,7 @@ int main(int argc, char *argv[]) {
             ack.error = 0;
             cout << " - send acknowledgement." << endl;
             sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
-            close(tcp_sk);
+            close(tcpsk);
             close(sk);
             return 0;
         }
@@ -304,9 +309,10 @@ void _prepare_and_send_msg_packet(uint8_t cmd, uint32_t size) {
 
 int create_tcp_socket() {
     // create and set up socket
-    tcp_sk = socket(AF_INET, SOCK_STREAM, 0);
-    if (tcp_sk == -1) {
-        perror("opening datagram socket");
+    tcpsk = socket(AF_INET, SOCK_STREAM, 0);
+    if (tcpsk == -1) {
+        cout << " - failed to create TCP socket." << endl;
+        close(sk);
         return 1;
     }
     tcp.sin_family = AF_INET;
@@ -314,17 +320,20 @@ int create_tcp_socket() {
     tcp.sin_port = htons(0);
 
     // bind address name to a port
-    if (::bind(tcp_sk, (struct sockaddr *)&tcp, tlen) == -1) {
-        perror("binding datagram socket");
+    if (::bind(tcpsk, (struct sockaddr *)&tcp, tlen) == -1) {
+        cout << " - failed to bind TCP socket." << endl;
+        close(tcpsk);
+        close(sk);
         return 1;
     }
 
     // get port name
-    if (::getsockname(tcp_sk, (struct sockaddr *)&tcp, &tlen) == -1)
-    {
-        perror("getting socket name");
+    if (::getsockname(tcpsk, (struct sockaddr *)&tcp, &tlen) == -1) {
+        cout << " - failed to get TCP socket info." << endl;
+        close(sk);
         return 1;
     }
+
     cout << " - listen @: " << ntohs(tcp.sin_port) << endl;
     return 0;
 }

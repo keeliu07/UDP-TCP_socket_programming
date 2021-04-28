@@ -52,19 +52,18 @@ int main(int argc, char *argv[]) {
     // create socket
     sk = socket(AF_INET, SOCK_DGRAM, 0);
     if (sk == -1) {
-        cout << " - UDP socket creation failed." << endl;
-        close(sk);
+        cout << " - failed to create UDP socket." << endl;
         return 1;
     }
     // designate the addressing family
     remote.sin_family = AF_INET;
     remote.sin_port = htons(udp_port);
-    // remote.sin_addr.s_addr = inet_addr(server_host);
 
     // get the address of the remote host and store
     hp = gethostbyname(server_host);
     if(hp == NULL){
-        cout << " - unknow host " << argv[1] << endl;
+        cout << " - failed to get host: unknow host " << argv[1] << endl;
+        close(sk);
         return 1;
     }
     memcpy(&remote.sin_addr, hp->h_addr, hp->h_length);
@@ -201,6 +200,12 @@ int main(int argc, char *argv[]) {
 
                         // create tcp socket and config
                         tcpsk = socket(AF_INET, SOCK_STREAM, 0);
+                        if(tcpsk == -1){
+                            cout << " - failed to create TCP socket." << endl;
+                            close(tcpsk);
+                            close(sk);
+                            return 1;
+                        }
                         tcp.sin_family = AF_INET;
                         tcp.sin_port = htons(tcp_port);
                         memcpy(&tcp.sin_addr, hp->h_addr, hp->h_length);
@@ -209,7 +214,6 @@ int main(int argc, char *argv[]) {
                         int establish = connect(tcpsk, (struct sockaddr *)&tcp, tlen);
                         if(establish != -1){
                             // connected to server with tcp
-
                             // read file into buffer
                             string path = getFileAbsolutePath(args[1]);
                             FILE *file = fopen(path.c_str(), "rb");
@@ -239,6 +243,9 @@ int main(int argc, char *argv[]) {
                             }
                         }else{
                             cout << " - failed to connect server with TCP."<<endl;
+                            close(tcpsk);
+                            close(sk);
+                            return 1;
                         }
                         close(tcpsk);
                     }

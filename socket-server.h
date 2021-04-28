@@ -7,7 +7,7 @@
 #define BUFLEN 3000
 
 int sk;
-int tcp_sk;
+int tcpsk;
 int msglen;
 char buf[BUFLEN];
 char remotebuf[BUFLEN];
