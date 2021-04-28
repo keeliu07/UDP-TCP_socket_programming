@@ -13,7 +13,9 @@ using namespace std;
 
 int sk;
 sockaddr_in remote;
-int tcp_sk;
+sockaddr_in local;
+socklen_t len = sizeof(local);
+int tcpsk;
 sockaddr_in tcp;
 char buf[BUFLEN];
 hostent *hp;

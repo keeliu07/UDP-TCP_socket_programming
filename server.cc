@@ -30,7 +30,9 @@ void _prepare_and_send_data_packet(string data) {
 }
 
 void _prepare_and_send_msg_packet(uint8_t cmd, uint32_t size) {
-    Cmd_Msg_T msg = {.cmd = cmd, .size = htonl(size)};
+    Cmd_Msg_T msg;
+    msg.cmd = cmd;
+    msg.size = htonl(size);
     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, rlen);
 }
 
@@ -158,8 +160,9 @@ int main(int argc, char *argv[]) {
             if(response.error == 2){
                 // wait for a response
                 Cmd_Msg_T receive;
-                if (read(sk, &receive, sizeof(receive)) == -1) {
-                    cout << "error!" <<endl;
+                msglen = recvfrom(sk, &receive, sizeof(receive), 0, (struct sockaddr *)&remote, &rlen);
+                if (msglen == -1) {
+                    cout << "error: " << errno << endl;
                 } else {
                     if(receive.error == 1){
                         response.error = 0;
@@ -221,7 +224,7 @@ int main(int argc, char *argv[]) {
                 ack.error = 1;
                 cout << " - file doesn't exist." << endl;
             }
-            cout << "- send acknowledgement." << endl;
+            cout << " - send acknowledgement." << endl;
             sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             resetState();
             break;
@@ -244,16 +247,19 @@ int main(int argc, char *argv[]) {
                 ack.error = 1;
                 cout << " - file doesn't exist." << endl;
             }
-            cout << "- send acknowledgement." << endl;
+            cout << " - send acknowledgement." << endl;
             sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
             resetState();
             break;
         }
         case SHUTDOWN:
         {
-            Cmd_Msg_T ack = {.cmd = CMD_ACK, .error = 0};
-            cout << "- send acknowledgement." << endl;
+            Cmd_Msg_T ack;
+            ack.cmd = CMD_ACK;
+            ack.error = 0;
+            cout << " - send acknowledgement." << endl;
             sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
+            close(tcp_sk);
             close(sk);
             return 0;
         }
@@ -315,7 +321,7 @@ bool checkFile(const char *fileName) {
 int invoke_ls(Cmd_Msg_T incoming_msg) {
     vector<string> files_vect;
     getDirectory("../backup/", files_vect);
-    _prepare_and_send_msg_packet(incoming_msg.cmd, (uint32_t)files_vect.size());
+    _prepare_and_send_msg_packet(CMD_LS, (uint32_t)files_vect.size());
     if (files_vect.size() == 0) {
         string msg = " - server backup folder is empty.";
         _prepare_and_send_data_packet(msg);

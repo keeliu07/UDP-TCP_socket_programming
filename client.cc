@@ -73,12 +73,22 @@ int main(int argc, char *argv[]) {
 
     // create socket
     sk = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sk == -1) {
+        cout << " - UDP socket creation failed." << endl;
+        close(sk);
+        return 1;
+    }
     // designate the addressing family
     remote.sin_family = AF_INET;
     remote.sin_port = htons(udp_port);
+    // remote.sin_addr.s_addr = inet_addr(server_host);
 
     // get the address of the remote host and store
     hp = gethostbyname(server_host);
+    if(hp == NULL){
+        cout << " - unknow host " << argv[1] << endl;
+        return 1;
+    }
     memcpy(&remote.sin_addr, hp->h_addr, hp->h_length);
 
     Client_State_T client_state = WAITING;
@@ -95,45 +105,55 @@ int main(int argc, char *argv[]) {
                 getline(cin, input);
                 int count = 0;
                 for(auto x : input){
-                    if(x == ' '){
-                        count++;
-                    }else{
-                        args[count]+= x;
-                    }
+                    if(x == ' ') count++;
+                    else args[count]+= x;
                 }
                 if(args[0] == "ls") {
                     Cmd_Msg_T msg = {.cmd = CMD_LS};
                     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = PROCESS_LS;
+                    break;
                 }
                 else if(args[0] == "send") {
                     client_state = PROCESS_SEND;
+                    break;
                 }
                 else if(args[0] == "remove") {
-                    Cmd_Msg_T msg = {.cmd = CMD_REMOVE};
-                    memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
-                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
-                    client_state = PROCESS_REMOVE;
+                    //ok
+                    if(args[1] != "" ){
+                        Cmd_Msg_T msg = {.cmd = CMD_REMOVE};
+                        memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
+                        sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
+                        client_state = PROCESS_REMOVE;
+                        break;
+                    }
                 }
                 else if(args[0] == "rename") {
-                    Cmd_Msg_T msg = {.cmd = CMD_RENAME};
-                    memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
-                    memcpy(msg.expected_filename, args[2].c_str(), FILE_NAME_LEN);
-                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
-                    client_state = PROCESS_RENAME;
+                    //ok
+                    if(args[1] != ""  && args[2] != "" ){
+                        Cmd_Msg_T msg = {.cmd = CMD_RENAME};
+                        memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
+                        memcpy(msg.expected_filename, args[2].c_str(), FILE_NAME_LEN);
+                        sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
+                        client_state = PROCESS_RENAME;
+                        break;
+                    }
                 }
                 else if(args[0] == "shutdown") {
+                    //ok
                     Cmd_Msg_T msg = {.cmd = CMD_SHUTDOWN};
                     sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, sizeof(remote));
                     client_state = SHUTDOWN;
+                    break;
                 }
                 else if(args[0] == "quit") {
+                    //ok
                     client_state = QUIT;
+                    break;
                 }
-                else{
-                    cout<<" - wrong command."<<endl;
-                    client_state = WAITING;
-                }
+
+                cout<<" - wrong command."<<endl;
+                client_state = WAITING;
                 break;
             }
             case PROCESS_LS:
@@ -145,21 +165,27 @@ int main(int argc, char *argv[]) {
                 if (int(response.cmd) != CMD_LS){
                     cout << " - command response error." << endl;
                 }else{
-                    Data_Msg_T data_msg;
-                    for (int i = 0; i < size; i++) {
-                        do {
-                            msglen = recvfrom(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, &rlen);
-                            cout << data_msg.data;
-                        } while (msglen < sizeof(*buf));
+                    if(size > 0){
+                        Data_Msg_T data_msg;
+                        for (int i = 0; i < size; i++) {
+                            do {
+                                msglen = recvfrom(sk, &data_msg, sizeof(data_msg), 0, (struct sockaddr *)&remote, &rlen);
+                                cout << data_msg.data;
+                            } while (msglen < sizeof(*buf));
+                        }
+                        cout << endl;
+                    }else{
+                        cout << " - server backup folder is empty." << endl;
                     }
                 }
-                cout << endl;
                 client_state = WAITING;
                 break;
             }
             case PROCESS_SEND:
             {
-                Cmd_Msg_T msg = {.cmd = CMD_SEND, .error = 0};
+                Cmd_Msg_T msg;
+                msg.cmd = CMD_SEND;
+                msg.error = 0;
                 memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
                 unsigned long filesize = getFileSize(args[1]);
                 if (filesize != -1){
@@ -195,7 +221,7 @@ int main(int argc, char *argv[]) {
                         cout << " - TCP port: " << tcp_port << endl;
 
                         // create tcp socket and config
-                        int tcpsk = socket(AF_INET, SOCK_STREAM, 0);
+                        tcpsk = socket(AF_INET, SOCK_STREAM, 0);
                         tcp.sin_family = AF_INET;
                         tcp.sin_port = htons(tcp_port);
                         memcpy(&tcp.sin_addr, hp->h_addr, hp->h_length);
@@ -244,8 +270,9 @@ int main(int argc, char *argv[]) {
             case PROCESS_REMOVE:
             {
                 Cmd_Msg_T response;
-                if (read(sk, &response, sizeof(response)) == -1) {
-                    cout << "error!" <<endl;
+                msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
+                if (msglen == -1) {
+                    cout << "error: " << errno << endl;
                 } else {
                     if (int(response.cmd) == CMD_ACK && response.error == 1) {
                         cout << " - file doesn't exist." << endl;
@@ -260,8 +287,9 @@ int main(int argc, char *argv[]) {
             case PROCESS_RENAME:
             {
                 Cmd_Msg_T response;
-                if (read(sk, &response, sizeof(response)) == -1) {
-                    cout << "error!" <<endl;
+                msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
+                if (msglen == -1) {
+                    cout << "error: " << errno << endl;
                 } else {
                     if (int(response.cmd) == CMD_ACK && response.error == 1) {
                         cout << " - file doesn't exist." << endl;
@@ -276,8 +304,9 @@ int main(int argc, char *argv[]) {
             case SHUTDOWN:
             {
                 Cmd_Msg_T response;
-                if (read(sk, &response, sizeof(response)) == -1) {
-                    cout << "error!" <<endl;
+                msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
+                if (msglen == -1) {
+                    cout << "error: " << errno << endl;
                 } else {
                     if (int(response.cmd) == CMD_ACK) {
                         cout << " - server is shutdown." << endl;
@@ -288,6 +317,7 @@ int main(int argc, char *argv[]) {
             }
             case QUIT:
             {
+                close(tcpsk);
                 close(sk);
                 return 0;
             }
