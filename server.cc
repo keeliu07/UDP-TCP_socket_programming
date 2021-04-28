@@ -156,7 +156,6 @@ int main(int argc, char *argv[]) {
                 response.port = tcp.sin_port;
             }
             sendto(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, rlen);
-            cout << response.error << endl;
             if(response.error == 2){
                 // wait for a response
                 msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
@@ -329,7 +328,7 @@ int invoke_ls(Cmd_Msg_T incoming_msg) {
         cout << msg;
     }else{
         for (int i = 0; i < files_vect.size(); i++) {
-            string msg = " - " + files_vect[i] + " \0";
+            string msg = " - " + files_vect[i] + "\0";
             _prepare_and_send_data_packet(msg);
             cout << msg;
         }

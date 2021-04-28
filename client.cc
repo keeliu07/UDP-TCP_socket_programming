@@ -247,9 +247,9 @@ int main(int argc, char *argv[]) {
                             // split buffer into chunks to send
                             long done = 0;
                             while(done < filesize ){
-                                long available = min(DATA_BUF_LEN, (int)(filesize - done));
                                 char buff[BUFLEN];
                                 memset(buff, 0, sizeof(buff));
+                                long available = min(DATA_BUF_LEN, (int)(filesize - done));
                                 memcpy(buff, file_bytes + done, available);
                                 write(tcpsk, buff, sizeof(buff));
                                 done+=available;
