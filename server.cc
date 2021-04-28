@@ -156,15 +156,15 @@ int main(int argc, char *argv[]) {
                 response.port = tcp.sin_port;
             }
             sendto(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, rlen);
-
+            cout << response.error << endl;
             if(response.error == 2){
                 // wait for a response
-                Cmd_Msg_T receive;
-                msglen = recvfrom(sk, &receive, sizeof(receive), 0, (struct sockaddr *)&remote, &rlen);
+                msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
                 if (msglen == -1) {
                     cout << "error: " << errno << endl;
                 } else {
-                    if(receive.error == 1){
+                    if(response.error == 0){
+                        create_tcp_socket();
                         response.error = 0;
                         response.port = tcp.sin_port;
                         sendto(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, rlen);
@@ -202,10 +202,11 @@ int main(int argc, char *argv[]) {
                 Cmd_Msg_T ack = {.cmd = CMD_ACK};
                 ack.error = 0;
                 sendto(sk, &ack, sizeof(ack), 0, (struct sockaddr *)&remote, sizeof(remote));
-                cout << "- send acknowledgement." << endl;
+                cout << " - send acknowledgement." << endl;
             }else{
                 cout << " - failed to accept TCP connection." << endl;
             }
+            close(tcp_sk);
             resetState();
             break;
         }

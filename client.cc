@@ -99,14 +99,14 @@ int main(int argc, char *argv[]) {
         switch(client_state) {
             case WAITING:
             {
-                input = "";
-                memset(args,0,sizeof(args));
+                input.clear();
+                memset(args, 0, sizeof(args));
                 cout << "$ ";
                 getline(cin, input);
                 int count = 0;
                 for(auto x : input){
                     if(x == ' ') count++;
-                    else args[count]+= x;
+                    else if (x != '$') args[count] += x;
                 }
                 if(args[0] == "ls") {
                     Cmd_Msg_T msg = {.cmd = CMD_LS};
@@ -115,8 +115,10 @@ int main(int argc, char *argv[]) {
                     break;
                 }
                 else if(args[0] == "send") {
-                    client_state = PROCESS_SEND;
-                    break;
+                    if (args[1] != ""){
+                        client_state = PROCESS_SEND;
+                        break;
+                    }
                 }
                 else if(args[0] == "remove") {
                     //ok
@@ -183,8 +185,7 @@ int main(int argc, char *argv[]) {
             }
             case PROCESS_SEND:
             {
-                Cmd_Msg_T msg;
-                msg.cmd = CMD_SEND;
+                Cmd_Msg_T msg = {.cmd = CMD_SEND};
                 msg.error = 0;
                 memcpy(msg.filename, args[1].c_str(), FILE_NAME_LEN);
                 unsigned long filesize = getFileSize(args[1]);
@@ -195,25 +196,29 @@ int main(int argc, char *argv[]) {
                 cout << " - filesize: " << filesize << endl;
 
                 Cmd_Msg_T response;
-                int msglen;
                 msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
                 if(response.error == 2){
+                    // ask for input
                     cout << " - file exists. overwrite? (y/n): ";
                     char choice;
                     scanf("%c", &choice);
-                    Cmd_Msg_T send = {.cmd = CMD_SEND};
-                    if (choice == 'y'){
-                        send.error = 0;
-                    }else{
-                        send.error = 2;
-                    }
-                    sendto(sk, &send, sizeof(send), 0, (struct sockaddr *)&remote, rlen);
-                    if(send.error ==2){
-                        // return to WAITING state
+
+                    // get rid of extra characters in buffer
+                    cin.ignore();
+
+                    if (choice == 'y')
+                        msg.error = 0;
+                    else 
+                        msg.error = 2;
+                    sendto(sk, &msg, sizeof(msg), 0, (struct sockaddr *)&remote, rlen);
+                    if(msg.error ==2){
                         client_state = WAITING;
                         break;
                     }
-                 }else if(response.error == 0){
+                    msglen = recvfrom(sk, &response, sizeof(response), 0, (struct sockaddr *)&remote, &rlen);
+                 }
+
+                 if(response.error == 0){
                     if (int(response.cmd) != CMD_SEND) {
                         cout << " - command response error." << endl;
                     } else {
@@ -258,14 +263,14 @@ int main(int argc, char *argv[]) {
                             }else{
                                 cout << " - file transmission is failed." << endl;
                             }
-
                         }else{
                             cout << " - failed to connect server with TCP."<<endl;
                         }
+                        close(tcpsk);
                     }
-                    client_state = WAITING;
-                    break;
                  }
+                 client_state = WAITING;
+                 break;
             }
             case PROCESS_REMOVE:
             {
@@ -276,7 +281,6 @@ int main(int argc, char *argv[]) {
                 } else {
                     if (int(response.cmd) == CMD_ACK && response.error == 1) {
                         cout << " - file doesn't exist." << endl;
-                        client_state = WAITING;
                     }else{
                         cout << " - file is removed." << endl;
                     }
@@ -293,7 +297,6 @@ int main(int argc, char *argv[]) {
                 } else {
                     if (int(response.cmd) == CMD_ACK && response.error == 1) {
                         cout << " - file doesn't exist." << endl;
-                        client_state = WAITING;
                     }else{
                         cout << " - file has been renamed." << endl;
                     }
@@ -310,9 +313,9 @@ int main(int argc, char *argv[]) {
                 } else {
                     if (int(response.cmd) == CMD_ACK) {
                         cout << " - server is shutdown." << endl;
-                        client_state = WAITING;
                     }
                 }
+                client_state = WAITING;
                 break;
             }
             case QUIT:
