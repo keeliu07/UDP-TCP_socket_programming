@@ -6,10 +6,10 @@ This is implementing a Remote Backup System with UDP/TCP socket programming.
  - complier: 'clang++ -std=c++11'
 
 * Usage
-  - w/ makefile under folder skeleton
+  - w/ makefile under folder "src"
     - type 'make', following commands will be executed;
-      'clang++ server.cc -g -std=c++11 -o ../excecutable/server'
-      'clang++ client.cc -g -std=c++11 -o ../excecutable/client'
+      'clang++ server.cc -g -std=c++11 -o ../executable/server'
+      'clang++ client.cc -g -std=c++11 -o ../executable/client'
   - or use g++ complier is okay as well;
     'g++ -std=c++11 server.cc -o server'
     'g++ -std=c++11 client.cc -o client'
@@ -25,7 +25,7 @@ This is implementing a Remote Backup System with UDP/TCP socket programming.
     - TEST.pdf
     - client
     - server
-  - skeleton
+  - src
     - makefile
     - server.h
     - socket-server.h
